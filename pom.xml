@@ -3,17 +3,41 @@
   <groupId>wessbas.commons</groupId>
   <artifactId>wessbas.commons</artifactId>
   <version>0.0.1-SNAPSHOT</version>
-  <build>
-    <sourceDirectory>src</sourceDirectory>
-    <plugins>
-      <plugin>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.0</version>
-        <configuration>
-          <source>1.7</source>
-          <target>1.7</target>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
+  
+  	<properties>
+		<tycho-version>0.22.0</tycho-version>
+	</properties>
+	
+  	<build>
+		<plugins>
+		
+		<plugin>
+			<groupId>org.eclipse.tycho</groupId>
+			<artifactId>tycho-maven-plugin</artifactId>
+			<version>${tycho-version}</version>
+			<extensions>true</extensions>
+		</plugin>
+
+		<plugin>
+			<groupId>org.eclipse.tycho</groupId>
+			<artifactId>tycho-compiler-plugin</artifactId>
+			<version>${tycho-version}</version>
+			<configuration>
+				<compilerArgument>-warn:+discouraged,forbidden</compilerArgument>
+			</configuration>
+		</plugin>
+
+		<plugin>
+			<groupId>org.eclipse.tycho</groupId>
+			<artifactId>tycho-packaging-plugin</artifactId>
+			<version>${tycho-version}</version>
+			<configuration>
+				<archive>
+					<addMavenDescriptor>false</addMavenDescriptor>
+				</archive>
+				<excludeResources>true</excludeResources>
+			</configuration>
+		</plugin>			
+  </plugins>
+	</build>
 </project>
