@@ -3,41 +3,10 @@
   <groupId>wessbas.commons</groupId>
   <artifactId>wessbas.commons</artifactId>
   <version>0.0.1-SNAPSHOT</version>
-  
-  	<properties>
-		<tycho-version>0.22.0</tycho-version>
-	</properties>
-	
-  	<build>
-		<plugins>
-		
-		<plugin>
-			<groupId>org.eclipse.tycho</groupId>
-			<artifactId>tycho-maven-plugin</artifactId>
-			<version>${tycho-version}</version>
-			<extensions>true</extensions>
-		</plugin>
-
-		<plugin>
-			<groupId>org.eclipse.tycho</groupId>
-			<artifactId>tycho-compiler-plugin</artifactId>
-			<version>${tycho-version}</version>
-			<configuration>
-				<compilerArgument>-warn:+discouraged,forbidden</compilerArgument>
-			</configuration>
-		</plugin>
-
-		<plugin>
-			<groupId>org.eclipse.tycho</groupId>
-			<artifactId>tycho-packaging-plugin</artifactId>
-			<version>${tycho-version}</version>
-			<configuration>
-				<archive>
-					<addMavenDescriptor>false</addMavenDescriptor>
-				</archive>
-				<excludeResources>true</excludeResources>
-			</configuration>
-		</plugin>			
-  </plugins>
-	</build>
+  <parent>
+  	<groupId>wessbas</groupId>
+  	<artifactId>parent</artifactId>
+  	<version>1.0.0-SNAPSHOT</version>
+  	<relativePath>../org.fortiss.pmwt.wessbas.build/pom.xml</relativePath>
+  </parent>
 </project>
