@@ -7,6 +7,6 @@
   	<groupId>wessbas</groupId>
   	<artifactId>parent</artifactId>
   	<version>1.0.0-SNAPSHOT</version>
-  	<relativePath>../org.fortiss.pmwt.wessbas.build/pom.xml</relativePath>
+  	<relativePath>../wessbas.build/pom.xml</relativePath>
   </parent>
 </project>

@@ -1,4 +1,4 @@
-package wessbas.util;
+package wessbas.commons.util;
 
 import org.eclipse.emf.common.util.Diagnostic;
 import org.eclipse.emf.ecore.EObject;
