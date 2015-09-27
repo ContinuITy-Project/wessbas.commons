@@ -18,7 +18,6 @@ import org.eclipse.ocl.examples.xtext.essentialocl.EssentialOCLStandaloneSetup;
 import org.eclipse.ocl.examples.xtext.oclinecore.OCLinEcoreStandaloneSetup;
 import org.eclipse.ocl.examples.xtext.oclstdlib.OCLstdlibStandaloneSetup;
 
-
 /**
  * Stand-alone validator for Ecore objects, to be used for validating EMF
  * features (e.g., missing children) and OCL constraints as well.
