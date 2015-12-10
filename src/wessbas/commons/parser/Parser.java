@@ -543,10 +543,7 @@ public class Parser {
 				}
 
 				if (sessionData.getUseCases().size() > 0) {
-					if (sessionData.getUseCases().get(0).getName()
-							.equals("mainLevel")) {
-						sessions.add(sessionData);
-					}
+					sessions.add(sessionData);
 				}
 
 			}
