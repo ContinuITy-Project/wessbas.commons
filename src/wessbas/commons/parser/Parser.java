@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.List;
 
 /**
  * Parser for session data files which consist of lines like
@@ -155,8 +154,8 @@ public class Parser {
 	 *             read access to the file.
 	 */
 	public SessionData[] parseFile(final String filePath,
-			final int thresHoldSessionTime) throws ParseException, IOException,
-			SecurityException {
+			final int thresHoldSessionTime, final boolean convertToNS)
+			throws ParseException, IOException, SecurityException {
 
 		final ArrayList<SessionData> sessions = new ArrayList<SessionData>();
 
@@ -170,13 +169,11 @@ public class Parser {
 			for (int lineNumber = 1; (line = bufferedReader.readLine()) != null; lineNumber++) {
 
 				// might throw a ParseException;
-				final List<SessionData> sessionDataList = this.parseLine(line,
-						lineNumber, thresHoldSessionTime);
+				final SessionData sessionData = this.parseLine(line,
+						lineNumber, convertToNS);
 
-				for (SessionData sessionData : sessionDataList) {
-					if (sessionData.getUseCases().size() > 0) {
-						sessions.add(sessionData);
-					}
+				if (sessionData.getUseCases().size() > 0) {
+					sessions.add(sessionData);
 				}
 
 			}
@@ -229,12 +226,8 @@ public class Parser {
 	 * @throws ParseException
 	 *             in case any syntactical error is detected while parsing.
 	 */
-	private LinkedList<SessionData> parseLine(final String line,
-			final int lineNumber, final int thresHoldSession)
-			throws ParseException {
-
-		final LinkedList<SessionData> sessionData = new LinkedList<SessionData>();
-		// to be returned;
+	private SessionData parseLine(final String line, final int lineNumber,
+			final boolean convertToNS) throws ParseException {
 
 		if (line.trim().startsWith(Parser.SESSION_PREFIX)) {
 
@@ -258,39 +251,17 @@ public class Parser {
 				}
 
 				LinkedList<UseCase> useCases = new LinkedList<UseCase>();
-				int newIdentifier = 0;
 
 				for (int i = 1, n = tokens.length; i < n; i++) {
 
 					final String token = tokens[i];
 
 					// use case is null, if informations are insufficient;
-					final UseCase useCase = parseUseCase(token);
+					final UseCase useCase = parseUseCase(token, convertToNS);
 
 					if (useCase != null) {
 
-						// TODO: if time between to user actions is above a
-						// threshold
-						// create new user session.
-						if (useCases.size() > 0
-								&& thresHoldSession > 0
-								&& (useCase.getStartTime()
-										- useCases.getLast().getEndTime() > thresHoldSession)) {
-
-							// create new session with old useCases
-							sessionData.add(new SessionData(id, useCases));
-
-							// add useCase to new session
-							id += "_" + Integer.toString(newIdentifier);
-							newIdentifier++;
-							useCases = new LinkedList<UseCase>();
-							useCases.add(useCase);
-
-						} else {
-
-							useCases.add(useCase);
-
-						}
+						useCases.add(useCase);
 
 					} else {
 
@@ -302,7 +273,7 @@ public class Parser {
 					}
 				}
 
-				sessionData.add(new SessionData(id, useCases));
+				return new SessionData(id, useCases);
 
 			} else {
 				final String message = String.format(
@@ -317,7 +288,7 @@ public class Parser {
 
 			throw new ParseException(message);
 		}
-		return sessionData;
+
 	}
 
 	/**
@@ -330,7 +301,7 @@ public class Parser {
 	 *         <code>String</code> contains insufficient use case informations,
 	 *         <code>null</code> will be returned.
 	 */
-	private UseCase parseUseCase(final String str) {
+	private UseCase parseUseCase(final String str, final boolean convertToNS) {
 
 		final UseCase useCase; // to be returned;
 
@@ -339,8 +310,13 @@ public class Parser {
 				.split(Parser.USECASE_TOKEN_SEPARATOR);
 
 		String name = useCaseTokens[0].trim();
-		final long startTime = this.parseTime(useCaseTokens[1]);
-		final long endTime = this.parseTime(useCaseTokens[2]);
+		long startTime = this.parseTime(useCaseTokens[1]);
+		long endTime = this.parseTime(useCaseTokens[2]);
+
+		if (convertToNS) {
+			startTime = startTime * 1000000;
+			endTime = endTime * 1000000;
+		}
 
 		if (useCaseTokens.length == 3) {
 			if (Parser.REMOVES_QUOTES_FROM_USE_CASE_NAMES) {
@@ -457,10 +433,10 @@ public class Parser {
 		 * @throws ParseException
 		 *             in case any syntactical error is detected while parsing.
 		 */
-		public List<SessionData> nextSession(final int thresHoldSession)
+		public SessionData nextSession(final boolean convertToNS)
 				throws IOException, ParseException {
 
-			final List<SessionData> sessionData;
+			final SessionData sessionData;
 
 			// readLine() might throw an IOException;
 			final String line = this.bufferedReader.readLine();
@@ -469,7 +445,7 @@ public class Parser {
 
 				// might throw a ParseException;
 				sessionData = Parser.this.parseLine(line, this.lineNumber,
-						thresHoldSession);
+						convertToNS);
 				this.lineNumber++;
 
 			} else {
@@ -503,7 +479,7 @@ public class Parser {
 	 * @throws ExtractionException
 	 */
 	public static ArrayList<SessionData> parseSessionsIntoSessionsRepository(
-			final String sessionInputFilePath, final int thresHoldSessionTime)
+			final String sessionInputFilePath, final boolean convertToNS)
 			throws IOException, ParseException {
 
 		// might throw a FileNotFound- or SecurityException;
@@ -512,41 +488,37 @@ public class Parser {
 
 		final ArrayList<SessionData> sessions = new ArrayList<SessionData>();
 
-		List<SessionData> sessionDataList;
+		SessionData sessionData;
 
 		// nextSession() might throw a Parse- or IOException;
-		while ((sessionDataList = iterator.nextSession(thresHoldSessionTime)) != null) {
+		while ((sessionData = iterator.nextSession(convertToNS)) != null) {
 
-			for (SessionData sessionData : sessionDataList) {
+			sessionData.setTransactionType("noSessionType");
 
-				sessionData.setTransactionType("noSessionType");
-
-				for (UseCase useCase : sessionData.getUseCases()) {
-					if (useCase.getName().contains("login")) {
-						if (useCase.getQueryString() != null) {
-							if (useCase.getQueryString().contains(
-									"doBrowseVehicles-1")) {
-								sessionData
-										.setTransactionType("doBrowseVehicles-1");
-							} else if (useCase.getQueryString().contains(
-									"doManageInventory-1")) {
-								sessionData
-										.setTransactionType("doManageInventory-1");
-							} else if (useCase.getQueryString().contains(
-									"doPurchaseVehicles-1")) {
-								sessionData
-										.setTransactionType("doPurchaseVehicles-1");
-							}
-							break;
+			// TODO: only relevant for SPECj and for evaluation of
+			// clustering
+			for (UseCase useCase : sessionData.getUseCases()) {
+				if (useCase.getName().contains("login")) {
+					if (useCase.getQueryString() != null) {
+						if (useCase.getQueryString().contains(
+								"doBrowseVehicles-1")) {
+							sessionData
+									.setTransactionType("doBrowseVehicles-1");
+						} else if (useCase.getQueryString().contains(
+								"doManageInventory-1")) {
+							sessionData
+									.setTransactionType("doManageInventory-1");
+						} else if (useCase.getQueryString().contains(
+								"doPurchaseVehicles-1")) {
+							sessionData
+									.setTransactionType("doPurchaseVehicles-1");
 						}
+						break;
 					}
 				}
-
-				if (sessionData.getUseCases().size() > 0) {
-					sessions.add(sessionData);
-				}
-
 			}
+
+			sessions.add(sessionData);
 		}
 
 		iterator.close(); // closes the input stream;
