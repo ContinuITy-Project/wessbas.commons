@@ -154,8 +154,8 @@ public class Parser {
 	 *             read access to the file.
 	 */
 	public SessionData[] parseFile(final String filePath,
-			final int thresHoldSessionTime, final boolean convertToNS)
-			throws ParseException, IOException, SecurityException {
+			final int thresHoldSessionTime) throws ParseException, IOException,
+			SecurityException {
 
 		final ArrayList<SessionData> sessions = new ArrayList<SessionData>();
 
@@ -169,8 +169,8 @@ public class Parser {
 			for (int lineNumber = 1; (line = bufferedReader.readLine()) != null; lineNumber++) {
 
 				// might throw a ParseException;
-				final SessionData sessionData = this.parseLine(line,
-						lineNumber, convertToNS);
+				final SessionData sessionData = this
+						.parseLine(line, lineNumber);
 
 				if (sessionData.getUseCases().size() > 0) {
 					sessions.add(sessionData);
@@ -226,8 +226,8 @@ public class Parser {
 	 * @throws ParseException
 	 *             in case any syntactical error is detected while parsing.
 	 */
-	private SessionData parseLine(final String line, final int lineNumber,
-			final boolean convertToNS) throws ParseException {
+	private SessionData parseLine(final String line, final int lineNumber)
+			throws ParseException {
 
 		if (line.trim().startsWith(Parser.SESSION_PREFIX)) {
 
@@ -257,7 +257,7 @@ public class Parser {
 					final String token = tokens[i];
 
 					// use case is null, if informations are insufficient;
-					final UseCase useCase = parseUseCase(token, convertToNS);
+					final UseCase useCase = parseUseCase(token);
 
 					if (useCase != null) {
 
@@ -301,7 +301,7 @@ public class Parser {
 	 *         <code>String</code> contains insufficient use case informations,
 	 *         <code>null</code> will be returned.
 	 */
-	private UseCase parseUseCase(final String str, final boolean convertToNS) {
+	private UseCase parseUseCase(final String str) {
 
 		final UseCase useCase; // to be returned;
 
@@ -313,7 +313,10 @@ public class Parser {
 		long startTime = this.parseTime(useCaseTokens[1]);
 		long endTime = this.parseTime(useCaseTokens[2]);
 
-		if (convertToNS) {
+		int length = (int) (Math.log10(startTime) + 1);
+
+		// convert ms to ns
+		if (length == 12 || length == 13) {
 			startTime = startTime * 1000000;
 			endTime = endTime * 1000000;
 		}
@@ -433,8 +436,7 @@ public class Parser {
 		 * @throws ParseException
 		 *             in case any syntactical error is detected while parsing.
 		 */
-		public SessionData nextSession(final boolean convertToNS)
-				throws IOException, ParseException {
+		public SessionData nextSession() throws IOException, ParseException {
 
 			final SessionData sessionData;
 
@@ -444,8 +446,7 @@ public class Parser {
 			if (line != null) {
 
 				// might throw a ParseException;
-				sessionData = Parser.this.parseLine(line, this.lineNumber,
-						convertToNS);
+				sessionData = Parser.this.parseLine(line, this.lineNumber);
 				this.lineNumber++;
 
 			} else {
@@ -479,8 +480,8 @@ public class Parser {
 	 * @throws ExtractionException
 	 */
 	public static ArrayList<SessionData> parseSessionsIntoSessionsRepository(
-			final String sessionInputFilePath, final boolean convertToNS)
-			throws IOException, ParseException {
+			final String sessionInputFilePath) throws IOException,
+			ParseException {
 
 		// might throw a FileNotFound- or SecurityException;
 		final Parser.Iterator iterator = Parser.getInstance().getIterator(
@@ -491,7 +492,7 @@ public class Parser {
 		SessionData sessionData;
 
 		// nextSession() might throw a Parse- or IOException;
-		while ((sessionData = iterator.nextSession(convertToNS)) != null) {
+		while ((sessionData = iterator.nextSession()) != null) {
 
 			sessionData.setTransactionType("noSessionType");
 
