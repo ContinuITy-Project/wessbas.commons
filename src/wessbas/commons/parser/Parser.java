@@ -585,4 +585,5 @@ public class Parser {
 		iterator.close(); // closes the input stream;
 		return sessions;
 	}
+
 }
