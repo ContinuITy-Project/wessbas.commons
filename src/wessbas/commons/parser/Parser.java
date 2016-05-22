@@ -1,8 +1,5 @@
 /***************************************************************************
- * Copyright 2012 by
- *  Christian-Albrechts-University of Kiel, 24098 Kiel, Germany
- *    + Department of Computer Science
- *     + Software Engineering Group
+ * Copyright (c) 2016 the WESSBAS project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,11 +17,15 @@
 package wessbas.commons.parser;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 
 /**
@@ -82,6 +83,8 @@ public class Parser {
 	 *  removed from use case names.
 	 */
 	private final static boolean REMOVES_QUOTES_FROM_USE_CASE_NAMES = true;
+
+	private final static HashMap<String, Integer> requestCounts = new HashMap<String, Integer>();
 
 	/**
 	 * SingletonHolder for singleton pattern; loaded on the first execution of
@@ -263,13 +266,20 @@ public class Parser {
 
 						useCases.add(useCase);
 
+						if (requestCounts.containsKey(useCase.getName())) {
+							int cnt = requestCounts.get(useCase.getName());
+							requestCounts.put(useCase.getName(), cnt + 1);
+						} else {
+							requestCounts.put(useCase.getName(), 1);
+						}
+
 					} else {
 
 						final String message = String.format(
 								Parser.ERROR_INSUFFICIENT_USE_CASE_INFORMATION,
 								lineNumber, line);
-
 						throw new ParseException(message);
+
 					}
 				}
 
@@ -334,7 +344,7 @@ public class Parser {
 			final String ip = useCaseTokens[5].trim();
 			final String protocol = useCaseTokens[6].trim();
 			final String methode = useCaseTokens[7].trim();
-			final String queryString = useCaseTokens[8].trim();
+			final String queryString = useCaseTokens[8].replaceFirst("\\?", "");
 			final String encoding = useCaseTokens[9].trim();
 
 			if (Parser.REMOVES_QUOTES_FROM_USE_CASE_NAMES) {
@@ -472,6 +482,53 @@ public class Parser {
 	}
 
 	/**
+	 * @param filePath
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 * @throws SecurityException
+	 * @throws NullPointerException
+	 */
+	private static void voidOutputRequestCount(final String filePath)
+			throws FileNotFoundException, IOException, SecurityException,
+			NullPointerException {
+
+		// might throw a FileNotFoundException or a SecurityException;
+		final FileOutputStream fos = new FileOutputStream(filePath + "/"
+				+ "requestCount.csv");
+		final OutputStreamWriter osw = new OutputStreamWriter(fos);
+		final BufferedWriter bufferedWriter = new BufferedWriter(osw);
+
+		try {
+
+			double sum = 0;
+			for (String key : requestCounts.keySet()) {
+				sum += requestCounts.get(key);
+			}
+
+			for (String key : requestCounts.keySet()) {
+				bufferedWriter.write(key + ";" + requestCounts.get(key) + ";"
+						+ (double) requestCounts.get(key) / sum + "\n");
+			}
+
+		} finally {
+
+			if (bufferedWriter != null) {
+
+				try {
+
+					bufferedWriter.close();
+
+				} catch (final IOException ex) {
+
+					// ignore exception, since this is the "finally" block;
+					// TODO: exception message should be written to log file;
+				}
+			}
+		}
+
+	}
+
+	/**
 	 * 
 	 * @param sessionInputFilePath
 	 * @return
@@ -480,8 +537,8 @@ public class Parser {
 	 * @throws ExtractionException
 	 */
 	public static ArrayList<SessionData> parseSessionsIntoSessionsRepository(
-			final String sessionInputFilePath) throws IOException,
-			ParseException {
+			final String sessionInputFilePath, final String requestCountFilePath)
+			throws IOException, ParseException {
 
 		// might throw a FileNotFound- or SecurityException;
 		final Parser.Iterator iterator = Parser.getInstance().getIterator(
@@ -518,12 +575,14 @@ public class Parser {
 					}
 				}
 			}
-
 			sessions.add(sessionData);
+		}
+
+		if (requestCountFilePath != null) {
+			voidOutputRequestCount(requestCountFilePath);
 		}
 
 		iterator.close(); // closes the input stream;
 		return sessions;
 	}
-
 }
